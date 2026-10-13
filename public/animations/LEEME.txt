@@ -1,0 +1,1 @@
+Animaciones exportadas opcionales (GLB con clips). Las animaciones actuales están en src/animations/.

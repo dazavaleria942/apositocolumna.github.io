@@ -1,0 +1,24 @@
+{
+  "name": "modelocolump",
+  "version": "1.0.0",
+  "description": "Procedimiento de Columna — Tutorial Interactivo 3D. Simulación educativa del procedimiento de instrumentación y colocación del apósito quirúrgico.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.mjs --open",
+    "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "esbuild": "^0.23.1"
+  },
+  "license": "UNLICENSED",
+  "thirdParty": {
+    "three": "r169 (MIT) en src/vendor/three",
+    "gsap": "3.13.0 (licencia estándar de GreenSock, uso gratuito) en src/vendor/gsap",
+    "IBM Plex": "SIL Open Font License en assets/fonts"
+  }
+}

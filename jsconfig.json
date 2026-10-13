@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "module": "ESNext",
+    "target": "ES2020",
+    "checkJs": false,
+    "paths": {
+      "three": ["./src/vendor/three/three.module.min.js"],
+      "three/addons/*": ["./src/vendor/three/addons/*"],
+      "gsap": ["./src/vendor/gsap/index.js"]
+    }
+  },
+  "include": ["src/**/*.js"],
+  "exclude": ["src/vendor", "dist"]
+}

@@ -1,0 +1,66 @@
+// Etapas del tutorial. Editar aquí los textos de navegación y de progreso.
+export const STAGES = [
+  {
+    id: 1,
+    key: 'materiales',
+    nav: 'Materiales',
+    title: 'Materiales',
+    progressLabel: 'Materiales',
+    summary: 'Elementos fundamentales de cada categoría del sistema de instrumentación.',
+    completion: 'Materiales revisados',
+  },
+  {
+    id: 2,
+    key: 'asepsia',
+    nav: 'Asepsia',
+    title: 'Asepsia y antisepsia',
+    progressLabel: 'Asepsia y antisepsia',
+    summary: 'Recordatorio breve de la preparación previa.',
+    completion: 'Preparación completada',
+  },
+  {
+    id: 3,
+    key: 'limpieza',
+    nav: 'Limpieza',
+    title: 'Limpieza de la herida quirúrgica',
+    progressLabel: 'Limpieza de la herida',
+    summary: 'Secuencia rápida de limpieza.',
+    completion: 'Limpieza revisada',
+  },
+  {
+    id: 4,
+    key: 'ensamblaje',
+    nav: 'Ensamblaje',
+    title: 'Técnica de ensamblaje',
+    progressLabel: 'Técnica de ensamblaje',
+    summary: 'Instrumentación paso a paso en vista anatómica.',
+    completion: 'Ensamblaje completado',
+  },
+  {
+    id: 5,
+    key: 'aposito',
+    nav: 'Apósito',
+    title: 'Colocación del apósito',
+    progressLabel: 'Colocación del apósito',
+    summary: 'Curación y cobertura de la incisión.',
+    completion: 'Apósito colocado',
+  },
+  {
+    id: 6,
+    key: 'registro',
+    nav: 'Registro',
+    title: 'Verificación del resultado y registro',
+    progressLabel: 'Verificación y registro',
+    summary: 'Comprobación final y registro del procedimiento.',
+    completion: 'Registro completado',
+  },
+];
+
+export const APP_TEXT = {
+  title: 'Procedimiento de Columna — Tutorial Interactivo 3D',
+  shortTitle: 'Procedimiento de Columna',
+  subtitle: 'Simulación educativa paso a paso del procedimiento de instrumentación y colocación del apósito quirúrgico.',
+  disclaimer: 'Contenido educativo. El procedimiento debe realizarse exclusivamente por personal capacitado y de acuerdo con los protocolos institucionales, indicaciones clínicas y especificaciones del fabricante.',
+  protocolNote: 'Seguir siempre el protocolo institucional y las indicaciones del equipo tratante.',
+  manufacturer: 'Según fabricante/protocolo institucional.',
+};

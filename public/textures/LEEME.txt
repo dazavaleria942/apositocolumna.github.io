@@ -1,0 +1,1 @@
+Texturas opcionales (.jpg, .png, .ktx2). Las texturas actuales se generan por código en src/utils/textures.js.
