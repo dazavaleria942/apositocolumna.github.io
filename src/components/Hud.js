@@ -37,7 +37,8 @@ export class Hud {
   note(text, tone = 'blue') {
     this.noteEl.hidden = false;
     this.noteEl.className = 'hud-note tone-' + tone;
-    this.noteEl.innerHTML = (tone === 'teal' ? icon('check') : icon('info')) + `<span>${text}</span>`;
+    const ic = tone === 'teal' ? 'check' : tone === 'red' || tone === 'amber' ? 'warning' : 'info';
+    this.noteEl.innerHTML = icon(ic) + `<span>${text}</span>`;
   }
 
   noteHide() {

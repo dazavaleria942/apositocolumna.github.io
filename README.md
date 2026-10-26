@@ -23,7 +23,7 @@ npm install      # solo la primera vez (instala esbuild)
 npm run build
 ```
 
-Parámetros útiles en la URL: `?etapa=4` abre directamente una etapa (1–6); `?calidad=baja` usa la versión más liviana para equipos con poca capacidad gráfica; `?calidad=alta` fuerza la oclusión ambiental también en celulares. La calidad baja sola si la animación va lenta.
+Parámetros útiles en la URL: `?etapa=6` abre directamente una etapa (1–7); `?pantalla=tv` fuerza el modo televisor; `?calidad=baja` usa la versión más liviana para equipos con poca capacidad gráfica; `?calidad=alta` fuerza la oclusión ambiental también en celulares. La calidad baja sola si la animación va lenta.
 
 ## Celulares y tablets
 
@@ -32,6 +32,12 @@ Parámetros útiles en la URL: `?etapa=4` abre directamente una etapa (1–6); `
 - Gestos: un dedo rota, dos dedos acercan/alejan y desplazan.
 - En equipos táctiles se desactiva la oclusión ambiental y se reduce la resolución interna para mantener la fluidez.
 - Para abrirlo desde el celular en la misma red Wi‑Fi: `npm start` en el computador y luego `http://IP-DEL-COMPUTADOR:5173` en el celular.
+- Seguimiento posquirúrgico en celular: los 8 días aparecen como tarjetas verticales con miniatura, título e indicador; la vista ampliada ocupa toda la pantalla.
+
+## Computador y televisor
+
+- **Computador:** modelo 3D ampliado a la izquierda y panel a la derecha; la vista ampliada del seguimiento muestra los 8 días en cuadrícula de tarjetas (o en pares silicona/algodón).
+- **Televisor:** se activa solo en pantallas de 1900 × 1000 o más (por ejemplo, un TV a pantalla completa) o con `?pantalla=tv`. Textos y botones más grandes, mayor contraste y foco visible para manejar con control remoto o teclado (`Tab`, flechas, `Enter`). Botón de pantalla completa en el visor o tecla `F`.
 
 ## Publicar en GitHub Pages
 
@@ -57,9 +63,10 @@ Notas:
 | 03 Limpieza de la herida | Recordatorio rápido en 5 pasos | 3.1–3.5 |
 | 04 Técnica de ensamblaje | Vista anatómica: tornillos, medición, corte y doblado, barra, reducción, caps, torque, verificación | 4.1–4.8 |
 | 05 Colocación del apósito | Higiene, revisión, campo, limpieza, secado, colocación, fijación, comprobación, registro | 5.1–5.9 |
-| 06 Verificación y registro | Lista final y formulario; pantalla «Procedimiento completado» | 6.1 |
+| 06 Posquirúrgico | Evolución del apósito en 8 días consecutivos (silicona o algodón): estado del material, cambios visibles, entorno e indicador de revisión o cambio; vista ampliada para comparar los días; signos de alarma; pantalla de evaluación al final del día 8 | 6.1–6.8 |
+| 07 Registro | Lista final, ejemplo completo marcado como «simulación educativa» y formulario de seguimiento; pantalla «Procedimiento completado» | 7.1 |
 
-**Controles:** arrastrar para rotar, rueda para acercar, botones `+ − ↻ ⌂ 🎯` en el visor. Teclado: `←/→` paso anterior/siguiente, `Espacio` reproducir/pausar, `H` vista inicial, `C` centrar zona quirúrgica, `R` rotación automática.
+**Controles:** arrastrar para rotar, rueda para acercar, botones `+ − ↻ ⌂ 🎯` en el visor. Teclado: `←/→` paso anterior/siguiente, `Espacio` reproducir/pausar, `H` vista inicial, `C` centrar zona quirúrgica, `R` rotación automática, `F` pantalla completa.
 
 ## Estructura
 
@@ -96,7 +103,8 @@ Los textos no están dentro de los componentes visuales:
 - `src/data/stages.js` — nombres de etapas, mensajes de «Etapa completada», aviso educativo.
 - `src/data/materials.js` — categorías de material, elementos principales y secundarios.
 - `src/data/instruments.js` — NOMBRE y FUNCIÓN de cada elemento seleccionable.
-- `src/data/procedure.js` — pasos de asepsia, limpieza, ensamblaje (4.1–4.8), apósito (5.1–5.9) y registro.
+- `src/data/procedure.js` — pasos de asepsia, limpieza, ensamblaje (4.1–4.8), apósito (5.1–5.9) y campos del registro (7.1), con el ejemplo de simulación.
+- `src/data/followup.js` — seguimiento posquirúrgico: los 8 días de cada material (título, indicador, cambios, entorno, texto y parámetros visuales del modelo), signos de alarma y textos de evaluación.
 
 Cada paso tiene la forma:
 
@@ -125,6 +133,9 @@ Convenciones: unidades en metros; el paciente está sobre el eje X (cabeza hacia
 - No se muestran valores de torque, dimensiones, medicamentos ni parámetros clínicos: aparecen como «Valor establecido por el fabricante» o «Según fabricante/protocolo institucional».
 - La herida se representa cerrada, con grapas, sin sangre. La técnica de ensamblaje se muestra en vista anatómica translúcida.
 - Los niveles instrumentados (L3–L5) son ilustrativos.
+- Seguimiento posquirúrgico: los 8 días son un escenario ilustrativo para comparar, no una evolución universal ni un calendario de cambio. El momento del cambio depende de la herida, el tipo de apósito, las indicaciones clínicas y el fabricante. La gasa de algodón se marca para cambio en cuanto está húmeda, traspasada o despegada.
+- El pus nunca se muestra como una etapa normal: solo aparece al marcar signos de alarma, junto con el aviso de valoración por un profesional sanitario sin esperar al día 8.
+- Los datos del ejemplo de registro son ficticios y están marcados como «simulación educativa».
 
 ## Licencias de terceros
 

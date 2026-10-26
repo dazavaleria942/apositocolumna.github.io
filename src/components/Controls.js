@@ -14,7 +14,24 @@ export class ViewControls {
       btn('home', 'Vista inicial', 'H', handlers.home),
       btn('target', 'Centrar zona quirúrgica', 'C', handlers.center),
     );
+    // Pantalla completa (computador y televisor); se oculta si el navegador no la permite
+    if (document.fullscreenEnabled) {
+      this.fsBtn = btn('expand', 'Pantalla completa', 'F', () => this.toggleFullscreen(), { 'aria-pressed': 'false' });
+      this.root.append(this.fsBtn);
+      document.addEventListener('fullscreenchange', () => {
+        const on = !!document.fullscreenElement;
+        this.fsBtn.innerHTML = icon(on ? 'compress' : 'expand');
+        this.fsBtn.setAttribute('aria-pressed', String(on));
+        this.fsBtn.setAttribute('aria-label', on ? 'Salir de pantalla completa' : 'Pantalla completa');
+        this.fsBtn.dataset.tip = on ? 'Salir de pantalla completa (F)' : 'Pantalla completa (F)';
+      });
+    }
     parent.append(this.root);
+  }
+
+  toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    else document.documentElement.requestFullscreen?.().catch(() => {});
   }
 
   setRotating(on) {

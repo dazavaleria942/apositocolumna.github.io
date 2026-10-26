@@ -118,23 +118,50 @@ export const RECORD_59 = {
 };
 
 export const FINAL_STEP = {
-  id: '6.1',
-  title: 'Verificación final',
-  text: 'Revisión del resultado y registro del procedimiento.',
+  id: '7.1',
+  title: 'Registro del seguimiento',
+  text: 'Registrar el estado del apósito y de la herida, y el cambio realizado o pendiente.',
   animation: 'final-check',
-  checklist: ['Herida revisada', 'Limpieza realizada', 'Apósito colocado', 'Apósito correctamente fijado', 'Estado registrado'],
+  checklist: ['Herida revisada', 'Limpieza realizada', 'Apósito colocado', 'Apósito correctamente fijado', 'Seguimiento posquirúrgico revisado', 'Estado registrado'],
   form: [
-    { key: 'fecha', label: 'Fecha', placeholder: 'DD/MM/AAAA', value: '' },
+    { key: 'fecha', label: 'Fecha', type: 'date' },
+    { key: 'dia', label: 'Día de seguimiento', type: 'select', options: ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Día 5', 'Día 6', 'Día 7', 'Día 8'] },
     { key: 'procedimiento', label: 'Procedimiento', value: 'Instrumentación de columna y colocación de apósito' },
-    { key: 'herida', label: 'Estado de la herida', value: 'Sin alteraciones visibles' },
-    { key: 'aposito', label: 'Tipo de apósito', value: 'Apósito estéril' },
-    { key: 'condicion', label: 'Condición final', value: 'Limpio, seco y bien adherido' },
-    { key: 'observaciones', label: 'Observaciones', placeholder: 'Escriba aquí', value: '', multiline: true },
-    { key: 'responsable', label: 'Responsable', placeholder: 'Nombre y cargo', value: '' },
+    { key: 'tipo', label: 'Tipo de apósito', type: 'radio', options: ['Silicona', 'Algodón'] },
+    {
+      key: 'estadoAposito',
+      label: 'Estado del apósito',
+      type: 'select',
+      options: ['Íntegro, limpio y seco', 'Manchado, exudado contenido', 'Húmedo o traspasado', 'Despegado o desplazado', 'Deteriorado'],
+    },
+    { key: 'herida', label: 'Aspecto de la herida', placeholder: 'Bordes, coloración, piel circundante' },
+    {
+      key: 'secreciones',
+      label: 'Secreciones observadas',
+      type: 'select',
+      options: ['Ninguna', 'Serosa', 'Serohemática', 'Hemática', 'Purulenta (signo de alarma)'],
+      alarmValue: 'Purulenta (signo de alarma)',
+    },
+    { key: 'cambio', label: 'Cambio de apósito', type: 'radio', options: ['Realizado', 'Pendiente', 'No indicado'] },
+    { key: 'observaciones', label: 'Observaciones', placeholder: 'Escriba aquí', multiline: true },
+    { key: 'responsable', label: 'Profesional responsable', placeholder: 'Nombre y cargo' },
   ],
+  // Ejemplo diligenciado (datos ficticios)
+  example: {
+    fecha: '2026-10-14',
+    dia: 'Día 3',
+    procedimiento: 'Instrumentación de columna y colocación de apósito',
+    tipo: 'Silicona',
+    estadoAposito: 'Manchado, exudado contenido',
+    herida: 'Bordes unidos, sin enrojecimiento ni calor local',
+    secreciones: 'Serosa',
+    cambio: 'No indicado',
+    observaciones: 'Exudado seroso escaso, contenido en la almohadilla. Sin signos de alarma. Próxima valoración según indicación.',
+    responsable: 'Enf. Laura Gómez (ficticio)',
+  },
 };
 
 export const FINAL_SCREEN = {
   title: 'PROCEDIMIENTO COMPLETADO',
-  checklist: ['Sistema verificado', 'Herida revisada', 'Apósito colocado', 'Registro completado'],
+  checklist: ['Sistema verificado', 'Herida revisada', 'Apósito colocado', 'Seguimiento revisado', 'Registro completado'],
 };

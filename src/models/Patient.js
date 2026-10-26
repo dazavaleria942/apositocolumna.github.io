@@ -447,6 +447,23 @@ export class Patient {
     this.wetMesh.userData.noAO = true;
     this.group.add(this.wetMesh);
 
+    // Piel perilesional (maceración, enrojecimiento) para el seguimiento posquirúrgico
+    this.peri = paintLayer({ ...win, w: 512, h: 256 });
+    const periGrid = conformGrid({ ...win, nx: 90, nz: 40, heightFn: skinY, offset: 0.0006 });
+    this.periMat = new THREE.MeshStandardMaterial({
+      map: this.peri.texture,
+      transparent: true,
+      roughness: 0.55,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+    });
+    this.periMesh = new THREE.Mesh(periGrid.geometry, this.periMat);
+    this.periMesh.renderOrder = 2;
+    this.periMesh.userData.noAO = true;
+    this.periMesh.visible = false;
+    this.group.add(this.periMesh);
+
     // Incisión cerrada con grapas (representación médica, no gráfica)
     this.incision = new THREE.Group();
     this.incision.name = 'incision';
@@ -501,6 +518,7 @@ export class Patient {
     this.torso.castShadow = t < 0.5;
     this.torso.userData.noAO = t > 0.3;
     this.antisepticMat.opacity = 1 - t;
+    if (this.periMat) this.periMat.opacity = 1 - t;
     this.wetMat.opacity = 0.3 * (1 - t);
     this.incisionMat.opacity = 1 - t;
     this.staples.forEach((s) => (s.visible = t < 0.6));
@@ -543,6 +561,76 @@ export class Patient {
 
   clearWet() {
     this.wet.clear();
+  }
+
+  /**
+   * Piel alrededor del apósito: maceración (blanquecina por humedad) y
+   * enrojecimiento (signo de alarma). rect: { cx, lx, lz } del apósito.
+   */
+  setPeriwound(c, rect) {
+    const L = this.peri;
+    L.clear();
+    if (!c || (c.macer < 0.01 && c.redness < 0.01)) {
+      this.periMesh.visible = false;
+      return;
+    }
+    this.periMesh.visible = true;
+    const ctx = L.ctx;
+    const [x0, z0] = L.toPx(rect.cx - rect.lx / 2, -rect.lz / 2);
+    const [x1, z1] = L.toPx(rect.cx + rect.lx / 2, rect.lz / 2);
+    const s = L.scale;
+    ctx.save();
+    if (c.redness > 0.01) {
+      const cx = (x0 + x1) / 2;
+      const cy = (z0 + z1) / 2;
+      // El halo se mantiene dentro de la capa para no dejar un corte recto en su borde
+      const rx = Math.min((x1 - x0) / 2 + 0.035 * s, cx - 1, L.canvas.width - cx - 1);
+      const ry = Math.min((z1 - z0) / 2 + 0.03 * s, cy - 1, L.canvas.height - cy - 1);
+      ctx.translate(cx, cy);
+      ctx.scale(1, ry / rx);
+      const g = ctx.createRadialGradient(0, 0, rx * 0.55, 0, 0, rx);
+      g.addColorStop(0, `rgba(196,70,60,${0.5 * c.redness})`);
+      g.addColorStop(0.7, `rgba(205,85,72,${0.32 * c.redness})`);
+      g.addColorStop(1, 'rgba(205,85,72,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, 0, rx, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    if (c.macer > 0.01) {
+      // Banda blanquecina de pocos milímetros junto al borde del apósito
+      const band = (0.0015 + 0.0035 * c.macer) * s;
+      ctx.filter = `blur(${Math.max(1, band * 0.4)}px)`;
+      ctx.strokeStyle = `rgba(236,226,214,${0.55 * c.macer})`;
+      ctx.lineWidth = band * 2;
+      ctx.beginPath();
+      ctx.roundRect(x0, z0, x1 - x0, z1 - z0, 6);
+      ctx.stroke();
+      ctx.filter = 'none';
+      ctx.strokeStyle = `rgba(225,215,205,${0.5 * c.macer})`;
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 40; i++) {
+        const t = i / 40;
+        const x = x0 + (x1 - x0) * t;
+        ctx.beginPath();
+        ctx.moveTo(x, z0 - band);
+        ctx.lineTo(x + 3, z0 + band * 0.4);
+        ctx.moveTo(x, z1 + band);
+        ctx.lineTo(x + 3, z1 - band * 0.4);
+        ctx.stroke();
+      }
+    }
+    // Bajo el apósito la capa queda vacía (evita que se vea a través del borde fino)
+    ctx.filter = 'none';
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = '#000';
+    const inset = 0.002 * s;
+    ctx.beginPath();
+    ctx.roundRect(x0 + inset, z0 + inset, x1 - x0 - inset * 2, z1 - z0 - inset * 2, 4);
+    ctx.fill();
+    ctx.restore();
+    L.texture.needsUpdate = true;
   }
 
   /** Piel húmeda tras la limpieza: franjas paralelas a la incisión. */

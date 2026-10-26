@@ -47,11 +47,20 @@ export const STAGES = [
   },
   {
     id: 6,
+    key: 'posquirurgico',
+    nav: 'Posquirúrgico',
+    title: 'Posquirúrgico: evolución y seguimiento del apósito',
+    progressLabel: 'Posquirúrgico',
+    summary: 'Evolución ilustrativa del apósito durante 8 días.',
+    completion: 'Seguimiento revisado',
+  },
+  {
+    id: 7,
     key: 'registro',
     nav: 'Registro',
-    title: 'Verificación del resultado y registro',
-    progressLabel: 'Verificación y registro',
-    summary: 'Comprobación final y registro del procedimiento.',
+    title: 'Registro',
+    progressLabel: 'Registro',
+    summary: 'Registro del seguimiento y del estado de la herida.',
     completion: 'Registro completado',
   },
 ];

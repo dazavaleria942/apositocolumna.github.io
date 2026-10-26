@@ -4,7 +4,11 @@ import { INSTRUMENTS } from '../data/instruments.js';
 import { STAGE_STEPS, buildAnimation } from '../steps/index.js';
 import { VIEWS } from '../animations/helpers.js';
 import { frameDisplay } from '../animations/materials.js';
+import { ALARM_SIGNS, conditionFor, DAYS } from '../data/followup.js';
 import * as THREE from 'three';
+
+const FOLLOW_STAGE = STAGES.findIndex((s) => s.key === 'posquirurgico');
+const RECORD_STAGE = STAGES.findIndex((s) => s.key === 'registro');
 
 /**
  * Controlador del tutorial: navegación entre etapas y pasos, línea de tiempo de
@@ -19,6 +23,10 @@ export class App {
     this.completed = new Set();
     this.tl = null;
     this.started = false;
+    // Seguimiento posquirúrgico: material elegido, signos de alarma y miniaturas 3D
+    this.follow = { material: 'silicona', signs: [], target: null };
+    this.thumbs = { silicona: Array(8).fill(null), algodon: Array(8).fill(null) };
+    this.thumbQueue = [];
     this.bindInput();
   }
 
@@ -57,6 +65,8 @@ export class App {
       progress: this.progress(),
       isFirst: this.pos === 0,
       isLast: this.pos === this.flat.length - 1,
+      follow: this.follow,
+      thumbs: this.thumbs,
     });
     this.dock.render(steps, k, k);
     this.topbar.update(s, this.completed, this.progress());
@@ -80,7 +90,10 @@ export class App {
     this.anno.clear();
     this.hud.clear();
     this.hideInfo();
-    this.world.applyState(step.state || {});
+    this.overlays.hideEvaluation?.();
+    if (s !== FOLLOW_STAGE) this.overlays.hideAlarm?.();
+    const state = typeof step.state === 'function' ? step.state(this) : step.state;
+    this.world.applyState(state || {});
     if (s !== 0) this.panel.selected = null;
     this.renderUI(s, k);
 
@@ -93,6 +106,10 @@ export class App {
     this.tl = tl;
     this.dock.setProgress(0);
     this.play();
+    if (s === FOLLOW_STAGE) {
+      this.ensureThumbs(this.follow.material);
+      this.ensureThumbs(this.follow.material === 'silicona' ? 'algodon' : 'silicona');
+    }
   }
 
   ctx() {
@@ -101,7 +118,12 @@ export class App {
       sm: this.sm,
       hud: this.hud,
       anno: this.anno,
-      ui: { panelTick: (i) => this.panel.tick(i) },
+      follow: this.follow,
+      ui: {
+        panelTick: (i) => this.panel.tick(i),
+        showEvaluation: () => this.showEvaluation(),
+        showAlarm: () => this.showAlarm(),
+      },
     };
   }
 
@@ -187,7 +209,7 @@ export class App {
       isFirst: false,
       isLast: true,
     });
-    STAGE_STEPS[5][0].checklist.forEach((_, i) => this.panel.tick(i));
+    STAGE_STEPS[RECORD_STAGE][0].checklist.forEach((_, i) => this.panel.tick(i));
     this.anno.clear();
     this.hud.clear();
     this.sm.flyTo(VIEWS.overview(), 1.6);
@@ -199,7 +221,124 @@ export class App {
       },
       onAssembly: () => this.goStage(3),
       onDressing: () => this.goStage(4),
+      onFollowUp: () => this.goStage(FOLLOW_STAGE),
     });
+  }
+
+  // ------------------------------------------------------------------ seguimiento posquirúrgico
+
+  currentDay() {
+    const { s, k } = this.current;
+    return s === FOLLOW_STAGE ? k + 1 : 8;
+  }
+
+  setFollowMaterial(m) {
+    if (m === this.follow.material) return;
+    this.follow.material = m;
+    if (this.current.s === FOLLOW_STAGE) this.goTo(this.pos);
+    this.gallery?.refresh();
+  }
+
+  toggleSign(key) {
+    const set = new Set(this.follow.signs);
+    if (set.has(key)) set.delete(key);
+    else set.add(key);
+    this.follow.signs = ALARM_SIGNS.map((a) => a.key).filter((k) => set.has(k));
+    this.applySigns();
+  }
+
+  clearSigns() {
+    this.follow.signs = [];
+    this.applySigns();
+  }
+
+  /** Muestra ejemplo de signos visibles (pus y enrojecimiento). */
+  showAlarmExample() {
+    this.follow.signs = ['pus', 'enrojecimiento'];
+    this.applySigns();
+  }
+
+  applySigns() {
+    const { s } = this.current;
+    if (s === FOLLOW_STAGE) {
+      const day = this.currentDay();
+      this.follow.target = conditionFor(this.follow.material, day, this.follow.signs);
+      if (!this.tl?.isActive()) this.world.setFollowUp(this.follow.material, this.follow.target);
+      this.panel.updateFollowSigns?.(this.follow);
+    }
+    if (this.follow.signs.length) this.showAlarm();
+    else this.overlays.hideAlarm?.();
+  }
+
+  showAlarm() {
+    const labels = ALARM_SIGNS.filter((a) => this.follow.signs.includes(a.key)).map((a) => a.label);
+    if (!labels.length) return;
+    this.overlays.showAlarm(labels, { onClear: () => this.clearSigns() });
+  }
+
+  showEvaluation() {
+    this.overlays.showEvaluation({
+      signs: this.follow.signs.length > 0,
+      onCompare: () => this.openGallery({ day: 8 }),
+      onRecord: () => {
+        this.completed.add(FOLLOW_STAGE);
+        this.overlays.toast('ETAPA COMPLETADA', STAGES[FOLLOW_STAGE].completion);
+        this.goTo(this.stageStart(RECORD_STAGE));
+      },
+    });
+  }
+
+  openGallery({ day = null, mode = null } = {}) {
+    if (!this.gallery) return;
+    if (this.tl?.isActive()) this.pause();
+    this.ensureThumbs('silicona');
+    this.ensureThumbs('algodon');
+    this.gallery.open({ material: this.follow.material, mode: mode || this.follow.material, day });
+  }
+
+  goDay(day) {
+    if (!this.started) this.started = true;
+    this.goTo(this.stageStart(FOLLOW_STAGE) + day - 1);
+  }
+
+  /**
+   * Genera las miniaturas 3D de los 8 días. Se dibujan dentro del ciclo de render, antes
+   * de la vista principal (que las cubre en el mismo cuadro), una cada dos cuadros para
+   * no trabar la animación.
+   */
+  ensureThumbs(material) {
+    for (let d = 0; d < 8; d++) {
+      if (!this.thumbs[material][d] && !this.thumbQueue.some((q) => q.m === material && q.d === d)) this.thumbQueue.push({ m: material, d });
+    }
+    if (!this.thumbHook && this.thumbQueue.length) {
+      this.thumbTick = 0;
+      this.thumbHook = this.sm.onUpdate(() => this.processThumb());
+    }
+  }
+
+  processThumb() {
+    const s = this.current.s;
+    // Solo con la escena posquirúrgica activa (apósito visible, sin vista anatómica)
+    const job = s === FOLLOW_STAGE || s === RECORD_STAGE ? this.thumbQueue[0] : null;
+    if (job && this.thumbTick++ % 2 === 0) {
+      this.thumbQueue.shift();
+      if (!this.thumbs[job.m][job.d]) {
+        const url = this.world.renderThumbnail(job.m, conditionFor(job.m, job.d + 1, []));
+        this.thumbs[job.m][job.d] = url;
+        document.querySelectorAll(`img[data-thumb="${job.m}-${job.d + 1}"]`).forEach((img) => {
+          img.src = url;
+          img.classList.add('is-ready');
+        });
+      }
+    }
+    if (!job || !this.thumbQueue.length) {
+      this.thumbHook?.();
+      this.thumbHook = null;
+    }
+  }
+
+  dayInfo(material, day) {
+    return DAYS[material][day - 1];
   }
 
   // ------------------------------------------------------------------ cámara
@@ -286,7 +425,8 @@ export class App {
 
     window.addEventListener('keydown', (e) => {
       const tag = (e.target.tagName || '').toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (document.body.classList.contains('modal-open')) return;
       if (e.key === 'ArrowRight') { e.preventDefault(); this.next(); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); this.prev(); }
       else if (e.key === ' ' && tag !== 'button') { e.preventDefault(); this.toggle(); }
@@ -295,6 +435,7 @@ export class App {
       else if (e.key === 'h' || e.key === 'H') this.home();
       else if (e.key === 'c' || e.key === 'C') this.center();
       else if (e.key === 'r' || e.key === 'R') this.controls.setRotating(this.sm.toggleAutoRotate());
+      else if (e.key === 'f' || e.key === 'F') this.controls.toggleFullscreen?.();
     });
   }
 }

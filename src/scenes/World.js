@@ -6,7 +6,8 @@ import { Patient, bodyTop } from '../models/Patient.js';
 import { Spine } from '../models/Spine.js';
 import { createScrew, createCap, createRod, createCrossConnector, createDomino, SCREW, ROD_R, CAP } from '../models/Implants.js';
 import * as I from '../models/Instruments.js';
-import { gauze, gauzeStack, solutionBottle, basin, dressingPack, glove, sterileField, forcepsWithGauze, SurgicalDressing } from '../models/Dressing.js';
+import { gauze, gauzeStack, solutionBottle, basin, dressingPack, glove, sterileField, forcepsWithGauze, SurgicalDressing, DRESSING } from '../models/Dressing.js';
+import { skinY } from '../models/Patient.js';
 import { markerRing, scanPlane, pulseRing, flatArrow, COLORS } from '../models/Effects.js';
 import { materials, setHighlight } from '../models/materials.js';
 import { enableShadows } from '../utils/geometry.js';
@@ -474,6 +475,62 @@ export class World {
     }
   }
 
+  // ------------------------------------------------------------------ seguimiento posquirúrgico
+
+  /** Estado del apósito y de la piel perilesional para un día (cond) o ninguno (null). */
+  setFollowUp(material, cond) {
+    this.dressing.setCondition(material, cond);
+    // Exposición algo menor en los primeros planos del apósito: conserva el detalle de los blancos
+    this.sm.renderer.toneMappingExposure = cond ? 0.86 : 1;
+    this.patient.setPeriwound(cond, { cx: DRESSING.cx, lx: DRESSING.lx, lz: DRESSING.lz });
+  }
+
+  /** Punto del apósito en el mundo (fracciones -0.5..0.5 del largo y del ancho). */
+  dressingPoint(fx = 0, fz = 0, lift = 0.004) {
+    const x = DRESSING.cx + fx * DRESSING.lx;
+    const z = fz * DRESSING.lz;
+    return new THREE.Vector3(x, skinY(x, z) + lift, z);
+  }
+
+  /**
+   * Miniatura del apósito renderizada con el mismo motor 3D (JPEG en data URL).
+   * Se dibuja en una esquina del lienzo y se copia de inmediato; se llama antes del
+   * render principal del mismo cuadro, que vuelve a pintar el lienzo completo.
+   */
+  renderThumbnail(material, cond, w = 480, h = 300) {
+    const r = this.sm.renderer;
+    const size = r.getSize(new THREE.Vector2());
+    const pr = r.getPixelRatio();
+    // Se dibuja en píxeles físicos w×h (en la esquina del lienzo) y se copia
+    const k = Math.min(1, (size.x * pr) / w, (size.y * pr) / h);
+    const pw = Math.max(1, Math.floor(w * k));
+    const ph = Math.max(1, Math.floor(h * k));
+    const prev = { m: this.dressing.material, c: this.dressing.cond };
+    this.setFollowUp(material, cond);
+    if (!this.thumbCam) this.thumbCam = new THREE.PerspectiveCamera(30, 1, 0.01, 10);
+    const cam = this.thumbCam;
+    cam.aspect = w / h;
+    cam.updateProjectionMatrix();
+    const t = this.dressingPoint(0, -0.04, 0);
+    const az = 0.2;
+    const el = 1.2;
+    const d = 0.355;
+    cam.position.set(t.x + Math.sin(az) * Math.cos(el) * d, t.y + Math.sin(el) * d, t.z + Math.cos(az) * Math.cos(el) * d);
+    cam.lookAt(t);
+    r.setScissorTest(true);
+    r.setViewport(0, 0, pw / pr, ph / pr);
+    r.setScissor(0, 0, pw / pr, ph / pr);
+    r.render(this.scene, cam);
+    const out = document.createElement('canvas');
+    out.width = pw;
+    out.height = ph;
+    out.getContext('2d').drawImage(r.domElement, 0, r.domElement.height - ph, pw, ph, 0, 0, pw, ph);
+    r.setScissorTest(false);
+    r.setViewport(0, 0, size.x, size.y);
+    this.setFollowUp(prev.c ? prev.m : null, prev.c);
+    return out.toDataURL('image/jpeg', 0.82);
+  }
+
   /** Transición de la vista anatómica (0 = piel opaca, 1 = translúcida). */
   setXray(t) {
     this.patient.setXray(t);
@@ -547,6 +604,8 @@ export class World {
     this.dressing.group.rotation.set(0, 0, 0);
     if (s.dressing === 'placed') this.dressing.set({ conform: 1, lift: 1, seal: 0 });
     if (s.dressing === 'fixed') this.dressing.set({ conform: 1, lift: 0, seal: 1 });
+    if (s.followUp) this.setFollowUp(s.followUp.material, s.followUp.cond);
+    else this.setFollowUp(null, null);
 
     this.aux.field.visible = s.auxField;
     this.aux.field.scale.set(1, 1, 1);

@@ -3,11 +3,13 @@ import { ASEPSIS_STEPS, CLEANING_STEPS, ASSEMBLY_STEPS, DRESSING_STEPS, FINAL_ST
 import { ASSEMBLY_ANIMATIONS } from '../animations/assembly.js';
 import { DRESSING_ANIMATIONS } from '../animations/dressing.js';
 import { MATERIAL_ANIMATIONS } from '../animations/materials.js';
+import { FOLLOWUP_ANIMATIONS } from '../animations/followup.js';
+import { conditionFor } from '../data/followup.js';
 
 // Une los datos de cada paso con su estado inicial de escena y su animación.
 // state: estado absoluto con el que comienza el paso (ver World.applyState).
 
-const ANIMATIONS = { ...ASSEMBLY_ANIMATIONS, ...DRESSING_ANIMATIONS, ...MATERIAL_ANIMATIONS };
+const ANIMATIONS = { ...ASSEMBLY_ANIMATIONS, ...DRESSING_ANIMATIONS, ...MATERIAL_ANIMATIONS, ...FOLLOWUP_ANIMATIONS };
 
 const PRE_OP = { incision: false, auxField: false, auxItems: false };
 const POST_OP = { incision: true, assembly: 8, auxField: true, auxItems: true };
@@ -63,9 +65,24 @@ const dressingStates = {
 };
 const dressing = DRESSING_STEPS.map((s) => ({ ...s, state: dressingStates[s.id] }));
 
+// Etapa 6: ocho días de seguimiento. El estado depende del material elegido y de
+// los signos de alarma marcados, por eso se calcula al entrar en cada día.
+const followup = Array.from({ length: 8 }, (_, i) => ({
+  id: `6.${i + 1}`,
+  day: i + 1,
+  title: `Día ${i + 1}`,
+  text: '',
+  animation: 'followup-day',
+  state: (app) => ({
+    ...POST_OP,
+    dressing: 'fixed',
+    followUp: { material: app.follow.material, cond: conditionFor(app.follow.material, Math.max(1, i), app.follow.signs) },
+  }),
+}));
+
 const registro = [{ ...FINAL_STEP, state: { ...POST_OP, dressing: 'fixed' } }];
 
-export const STAGE_STEPS = [materials, asepsis, cleaning, assembly, dressing, registro];
+export const STAGE_STEPS = [materials, asepsis, cleaning, assembly, dressing, followup, registro];
 
 export function buildAnimation(step, ctx, tl) {
   const fn = ANIMATIONS[step.animation];

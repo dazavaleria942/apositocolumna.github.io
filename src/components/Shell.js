@@ -2,6 +2,7 @@ import { h, clear, pad2 } from './dom.js';
 import { icon } from './icons.js';
 import { STAGES, APP_TEXT } from '../data/stages.js';
 import { FINAL_SCREEN } from '../data/procedure.js';
+import { FOLLOWUP_TEXT } from '../data/followup.js';
 
 /** Barra superior con marca y menú de etapas 01–06. */
 export class TopBar {
@@ -100,7 +101,7 @@ export class Overlays {
     }, 2600);
   }
 
-  showFinal({ onRestart, onAssembly, onDressing }) {
+  showFinal({ onRestart, onAssembly, onDressing, onFollowUp }) {
     this.hideFinal();
     this.final = h('div', { class: 'overlay final', role: 'dialog', 'aria-label': FINAL_SCREEN.title },
       h('div', { class: 'final-card' },
@@ -110,7 +111,8 @@ export class Overlays {
         h('div', { class: 'final-actions' },
           h('button', { class: 'btn btn-primary', type: 'button', onclick: onRestart }, 'Reiniciar tutorial'),
           h('button', { class: 'btn btn-ghost', type: 'button', onclick: onAssembly }, 'Revisar ensamblaje'),
-          h('button', { class: 'btn btn-ghost', type: 'button', onclick: onDressing }, 'Revisar colocación del apósito')),
+          h('button', { class: 'btn btn-ghost', type: 'button', onclick: onDressing }, 'Revisar colocación del apósito'),
+          onFollowUp ? h('button', { class: 'btn btn-ghost', type: 'button', onclick: onFollowUp }, 'Revisar seguimiento posquirúrgico') : null),
         h('p', { class: 'intro-disclaimer' }, APP_TEXT.disclaimer)));
     this.viewport.append(this.final);
     requestAnimationFrame(() => this.final.classList.add('is-in'));
@@ -122,5 +124,62 @@ export class Overlays {
     this.final = null;
     el.classList.remove('is-in');
     setTimeout(() => el.remove(), 400);
+  }
+
+  /** Pantalla destacada al terminar el día 8. */
+  showEvaluation({ signs = false, onCompare, onRecord }) {
+    this.hideEvaluation();
+    const close = () => this.hideEvaluation();
+    const [first, ...rest] = FOLLOWUP_TEXT.evaluation.split('. ');
+    this.evaluation = h('div', { class: 'overlay evaluation', role: 'alertdialog', 'aria-labelledby': 'eval-title', 'aria-describedby': 'eval-text' },
+      h('div', { class: 'eval-card' },
+        h('button', { type: 'button', class: 'eval-close', 'aria-label': 'Cerrar', html: icon('close'), onclick: close }),
+        h('span', { class: 'eval-icon', html: icon('clipboard') }),
+        h('p', { class: 'eval-kicker' }, 'Final del día 8'),
+        h('h2', { class: 'eval-title', id: 'eval-title' }, first + '.'),
+        h('p', { class: 'eval-text', id: 'eval-text' }, rest.join('. ')),
+        h('p', { class: 'eval-note' }, 'La frecuencia de cambio depende de la herida, el tipo de apósito, las indicaciones clínicas y el fabricante.'),
+        h('div', { class: 'eval-alarm' + (signs ? ' is-active' : ''), html: icon('warning') + '<span>Si aparece pus, mal olor, aumento del enrojecimiento, dolor o fiebre: valoración por un profesional sanitario, sin esperar al día 8.</span>' }),
+        h('div', { class: 'eval-actions' },
+          h('button', { type: 'button', class: 'btn btn-ghost', onclick: () => { close(); onCompare?.(); }, html: icon('grid') + '<span>Comparar los 8 días</span>' }),
+          h('button', { type: 'button', class: 'btn btn-primary', onclick: () => { close(); onRecord?.(); } }, 'Continuar al registro →'))));
+    this.viewport.append(this.evaluation);
+    requestAnimationFrame(() => {
+      this.evaluation?.classList.add('is-in');
+      this.evaluation?.querySelector('.btn-primary')?.focus({ preventScroll: true });
+    });
+  }
+
+  hideEvaluation() {
+    if (!this.evaluation) return;
+    const el = this.evaluation;
+    this.evaluation = null;
+    el.classList.remove('is-in');
+    setTimeout(() => el.remove(), 350);
+  }
+
+  /** Alerta de signos de alarma (visible sobre el modelo 3D). */
+  showAlarm(labels, { onClear } = {}) {
+    if (!this.alarm) {
+      this.alarmText = h('div', { class: 'alarm-text' });
+      this.alarm = h('div', { class: 'alarm-banner', role: 'alert' },
+        h('span', { class: 'alarm-icon', html: icon('warning') }),
+        this.alarmText,
+        h('button', { type: 'button', class: 'alarm-close', 'aria-label': 'Ocultar alerta', html: icon('close'), onclick: () => this.hideAlarm() }));
+    }
+    this.alarmText.innerHTML = '';
+    this.alarmText.append(
+      h('strong', {}, 'Signos de alarma: ' + labels.join(', ').toLowerCase() + '.'),
+      h('span', {}, FOLLOWUP_TEXT.alarm),
+      onClear ? h('button', { type: 'button', class: 'link-btn alarm-clear', onclick: onClear }, 'Quitar signos marcados') : null);
+    if (!this.alarm.isConnected) this.viewport.append(this.alarm);
+    requestAnimationFrame(() => this.alarm.classList.add('is-in'));
+  }
+
+  hideAlarm() {
+    if (!this.alarm?.isConnected) return;
+    this.alarm.classList.remove('is-in');
+    const el = this.alarm;
+    setTimeout(() => !el.classList.contains('is-in') && el.remove(), 300);
   }
 }

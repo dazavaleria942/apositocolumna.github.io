@@ -439,6 +439,8 @@ export function paintLayer({ x0, x1, z0, z1, w = 512, h = 256 }) {
     canvas: c,
     ctx,
     texture: tex,
+    toPx,
+    scale,
     clear() {
       ctx.clearRect(0, 0, w, h);
       tex.needsUpdate = true;

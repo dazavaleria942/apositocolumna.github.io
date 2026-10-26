@@ -8,11 +8,21 @@ import { TopBar, Overlays } from './components/Shell.js';
 import { h } from './components/dom.js';
 import { icon } from './components/icons.js';
 import { App } from './app/App.js';
+import { FollowUpGallery } from './components/FollowUp.js';
 import { VIEWS } from './animations/helpers.js';
-import { APP_TEXT } from './data/stages.js';
+import { APP_TEXT, STAGES } from './data/stages.js';
 
 async function boot() {
   const root = document.getElementById('app');
+  // Televisor: pantalla grande a pantalla completa o forzado con ?pantalla=tv
+  const forceTv = new URLSearchParams(location.search).get('pantalla') === 'tv';
+  const tvQuery = window.matchMedia('(min-width: 1900px) and (min-height: 1000px)');
+  const applyTv = () => {
+    document.body.classList.toggle('is-tv', forceTv || tvQuery.matches);
+    window.dispatchEvent(new Event('resize'));
+  };
+  document.body.classList.toggle('is-tv', forceTv || tvQuery.matches);
+  tvQuery.addEventListener?.('change', applyTv);
   const viewport = h('section', { class: 'viewport', 'aria-label': 'Simulador 3D' });
   const stageHost = h('div', { class: 'stage-host' });
   viewport.append(stageHost);
@@ -45,6 +55,9 @@ async function boot() {
       else r.top = b.bottom - vr.top + 4;
     }
     if (dk) r.bottom = vr.bottom - dk.getBoundingClientRect().top + 4;
+    // Mensaje inferior del HUD: las etiquetas tampoco se colocan sobre él
+    const hn = viewport.querySelector('.hud-note');
+    if (hn && !hn.hidden && hn.offsetWidth) r.bottom = Math.max(r.bottom, vr.bottom - hn.getBoundingClientRect().top + 4);
     return r;
   };
   const anno = new Annotations(viewport, sm, { onSelect: (id) => app.selectInstrument(id), reserves });
@@ -80,12 +93,21 @@ async function boot() {
     goStep: (i) => app.goStep(i),
     selectInstrument: (id) => app.selectInstrument(id),
     finish: () => app.finish(),
+    setMaterial: (m) => app.setFollowMaterial(m),
+    toggleSign: (k) => app.toggleSign(k),
+    alarmExample: () => app.showAlarmExample(),
+    openGallery: () => app.openGallery({ day: null }),
   });
   const topbar = new TopBar(root, { onStage: (i) => app.goStage(i) });
   panel.root.querySelector('.panel-foot').append(h('p', { class: 'disclaimer disclaimer-foot' }, APP_TEXT.disclaimer));
 
   app = new App({ sm, world, topbar, panel, dock, controls, hud, anno, overlays });
   app.infoEl = info;
+  app.gallery = new FollowUpGallery({
+    getThumb: (m, d) => app.thumbs[m][d - 1],
+    onGoDay: (d) => app.goDay(d),
+    onMaterial: (m) => app.setFollowMaterial(m),
+  });
   app.preview();
   window.__app = app;
   window.__sm = sm;
@@ -119,7 +141,7 @@ async function boot() {
     sm.fixedQuality = true;
   }
   if (params.has('etapa')) {
-    const i = Math.max(1, Math.min(6, Number(params.get('etapa')))) - 1;
+    const i = Math.max(1, Math.min(STAGES.length, Number(params.get('etapa')))) - 1;
     app.goStage(i);
   } else {
     overlays.showIntro(() => app.start());
